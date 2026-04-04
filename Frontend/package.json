@@ -1,8 +1,16 @@
 {
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
+    "pixi.js": "^8.17.1",
+    "socket.io-client": "^4.8.3",
     "tailwind": "^4.0.0",
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.3"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   }
 }
