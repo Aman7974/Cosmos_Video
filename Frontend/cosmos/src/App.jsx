@@ -4,7 +4,6 @@ import CosmosCanvas from './cosmos/CosmosCanvas';
 import ChatPanel from './chat/ChatPanel';
 import { useChat } from './chat/useChat';
 
-// Connect to our backend. In dev, Vite proxies /api so just use localhost.
 const socket = io('http://localhost:5000', { autoConnect: false });
 
 export default function App() {
@@ -17,12 +16,11 @@ export default function App() {
 
   const { receiveMessage, sendMessage, getMessages } = useChat();
 
-  // ── JOIN THE COSMOS ────────────────────────────────────────────
   async function handleJoin() {
     if (!username.trim()) return;
 
     // 1. Register/login via REST API (persists to MongoDB)
-    const res = await fetch('/api/auth/join', {
+    const res = await fetch('http://localhost:5000/api/auth/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username }),
@@ -30,7 +28,6 @@ export default function App() {
     const { user: dbUser } = await res.json();
     setUser(dbUser);
 
-    // 2. Connect socket and announce presence
     socket.connect();
     socket.emit('user:join', {
       userId: dbUser._id,
@@ -39,9 +36,7 @@ export default function App() {
     });
   }
 
-  // ── SOCKET EVENT LISTENERS ─────────────────────────────────────
   useEffect(() => {
-    // Someone else joined
     socket.on('user:joined', (newUser) => {
       setOthers(prev => [...prev, newUser]);
     });
@@ -51,24 +46,20 @@ export default function App() {
       setOthers(existingUsers);
     });
 
-    // Someone moved
     socket.on('user:moved', ({ socketId, x, y }) => {
       setOthers(prev =>
         prev.map(u => u.socketId === socketId ? { ...u, x, y } : u)
       );
     });
 
-    // Someone left
     socket.on('user:left', ({ socketId }) => {
       setOthers(prev => prev.filter(u => u.socketId !== socketId));
-      // If we were chatting with them, close chat
       if (activeChat?.socketId === socketId) {
         setActiveChat(null);
         setSidebarOpen(false);
       }
     });
 
-    // We received a chat message
     socket.on('chat:received', (msg) => {
       receiveMessage(msg);
       // Auto-open chat panel if not already open
@@ -76,7 +67,6 @@ export default function App() {
       setActiveChat(prev => prev || { socketId: msg.fromSocketId, username: msg.fromUsername, color: msg.fromColor });
     });
 
-    // Cleanup all listeners on unmount
     return () => {
       socket.off('user:joined');
       socket.off('users:current');
@@ -86,33 +76,27 @@ export default function App() {
     };
   }, [activeChat]);
 
-  // ── SEND POSITION UPDATE ───────────────────────────────────────
   const handleMove = useCallback((x, y) => {
     socket.emit('user:move', { x, y });
   }, []);
 
-  // ── PROXIMITY CHANGE ──────────────────────────────────────────
   const handleProximity = useCallback((nearbyUsers) => {
     setNearby(nearbyUsers);
-    // Auto open chat when someone enters range
     if (nearbyUsers.length > 0 && !sidebarOpen) {
       setSidebarOpen(true);
       setActiveChat(nearbyUsers[0]);
     }
-    // Auto close when everyone leaves
     if (nearbyUsers.length === 0) {
       setSidebarOpen(false);
       setActiveChat(null);
     }
   }, [sidebarOpen]);
 
-  // ── SEND CHAT MESSAGE ─────────────────────────────────────────
   function handleSendMessage(toSocketId, message) {
     socket.emit('chat:message', { toSocketId, message });
     sendMessage(toSocketId, message);
   }
 
-  // ── LOGIN SCREEN ──────────────────────────────────────────────
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#0a0a0f]">
@@ -139,8 +123,12 @@ export default function App() {
     );
   }
 
-  // ── MAIN APP ──────────────────────────────────────────────────
-  const meWithSocket = { ...user, socketId: socket.id, x: 400, y: 300 };
+  const meWithSocket = {
+  ...user,
+  socketId: socket.id || "local",
+  x: 400,
+  y: 300
+};
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0f]">

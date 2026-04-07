@@ -3,11 +3,6 @@ import * as PIXI from 'pixi.js';
 import { useMovement } from './useMovement';
 import { PROXIMITY_RADIUS, isInProximity } from './proximity';
 
-// Props:
-//   me         — { socketId, username, color, x, y }  (the local user)
-//   others     — array of other connected users
-//   onMove     — callback(x, y) called when we move, to emit to server
-//   onProximity — callback(nearbyUsers[]) called when nearby users change
 export default function CosmosCanvas({ me, others, onMove, onProximity }) {
   const canvasRef = useRef(null);   // DOM element where PixiJS renders
   const appRef = useRef(null);      // PixiJS Application instance
@@ -19,7 +14,6 @@ export default function CosmosCanvas({ me, others, onMove, onProximity }) {
   useEffect(() => {
     const app = new PIXI.Application();
 
-    // async init — PixiJS v8 requires awaiting
     (async () => {
       await app.init({
         canvas: canvasRef.current,
@@ -30,7 +24,6 @@ export default function CosmosCanvas({ me, others, onMove, onProximity }) {
 
       appRef.current = app;
 
-      // Draw a dot-grid background (decorative)
       const grid = new PIXI.Graphics();
       for (let x = 0; x < app.screen.width; x += 40) {
         for (let y = 0; y < app.screen.height; y += 40) {
@@ -39,56 +32,44 @@ export default function CosmosCanvas({ me, others, onMove, onProximity }) {
       }
       app.stage.addChild(grid);
 
-      // Create MY avatar sprite
       sprites.current[me.socketId] = createUserSprite(app, me, true);
 
-      // Game loop — runs every frame (~60fps)
       app.ticker.add(() => {
         const { dx, dy } = getDelta();
 
         if (dx !== 0 || dy !== 0) {
-          // Clamp position so user can't leave the canvas
           myPos.current.x = Math.max(20, Math.min(app.screen.width - 20, myPos.current.x + dx));
           myPos.current.y = Math.max(20, Math.min(app.screen.height - 20, myPos.current.y + dy));
 
-          // Update my sprite position
           const mySprite = sprites.current[me.socketId];
           if (mySprite) {
             mySprite.x = myPos.current.x;
             mySprite.y = myPos.current.y;
           }
 
-          // Emit to server (throttled to every 2 frames to reduce traffic)
           onMove(myPos.current.x, myPos.current.y);
         }
 
-        // Recalculate proximity every frame
-        // Build the "me" object with current position for comparison
         const currentMe = { ...me, ...myPos.current };
         const nearby = others.filter(u => isInProximity(currentMe, u));
         onProximity(nearby);
 
-        // Draw proximity rings and connection lines
         renderProximity(app, sprites.current, currentMe, others);
       });
     })();
 
     return () => {
-      // Cleanup when component unmounts
       app.destroy(true);
       appRef.current = null;
     };
-  }, []); // Empty deps — only run on mount/unmount
+  }, []); 
 
-  // ── SYNC OTHER USERS ────────────────────────────────────────────
-  // When `others` changes (someone joined/moved/left), update their sprites
   useEffect(() => {
     const app = appRef.current;
     if (!app) return;
 
     const currentIds = new Set(others.map(u => u.socketId));
 
-    // Remove sprites for users who left
     Object.keys(sprites.current).forEach(id => {
       if (id !== me.socketId && !currentIds.has(id)) {
         app.stage.removeChild(sprites.current[id]);
@@ -97,7 +78,6 @@ export default function CosmosCanvas({ me, others, onMove, onProximity }) {
       }
     });
 
-    // Add or update sprites for current users
     others.forEach(user => {
       if (!sprites.current[user.socketId]) {
         sprites.current[user.socketId] = createUserSprite(app, user, false);
@@ -117,7 +97,6 @@ export default function CosmosCanvas({ me, others, onMove, onProximity }) {
   );
 }
 
-// ── HELPER: Create a user avatar (circle + label) ────────────────
 function createUserSprite(app, user, isMe) {
   const container = new PIXI.Container();
   container.x = user.x;
@@ -126,20 +105,17 @@ function createUserSprite(app, user, isMe) {
   const radius = isMe ? 18 : 15;
   const color = parseInt(user.color.replace('#', ''), 16);
 
-  // Glow / proximity ring (only visible when in range — updated separately)
   const ring = new PIXI.Graphics();
   ring.circle(0, 0, PROXIMITY_RADIUS)
     .stroke({ color, alpha: 0.15, width: 1.5 });
   ring.label = 'ring';
   container.addChild(ring);
 
-  // Avatar circle
   const circle = new PIXI.Graphics();
   circle.circle(0, 0, radius).fill({ color });
   circle.circle(0, 0, radius).stroke({ color: 0xffffff, alpha: 0.3, width: 1.5 });
   container.addChild(circle);
 
-  // Name label
   const label = new PIXI.Text({
     text: user.username + (isMe ? ' (you)' : ''),
     style: {
@@ -156,7 +132,6 @@ function createUserSprite(app, user, isMe) {
   return container;
 }
 
-// ── HELPER: Draw connection lines between nearby users ───────────
 function renderProximity(app, sprites, me, others) {
   // Remove previous connection lines
   const existing = app.stage.getChildByLabel('connections');

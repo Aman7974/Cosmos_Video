@@ -1,17 +1,14 @@
 import { useEffect, useRef } from 'react';
 
-// SPEED controls pixels per frame your avatar moves
+
 const SPEED = 3;
 
 export function useMovement() {
-  // useRef stores values that DON'T cause re-renders
-  // Perfect for tracking key state (changes 60x/sec)
   const keys = useRef({});
 
   useEffect(() => {
     const onKeyDown = (e) => {
       keys.current[e.key] = true;
-      // Prevent arrow keys from scrolling the page
       if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
         e.preventDefault();
       }
@@ -24,13 +21,11 @@ export function useMovement() {
     window.addEventListener('keyup', onKeyUp);
 
     return () => {
-      // Cleanup: remove listeners when component unmounts
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
   }, []);
 
-  // Call this every frame to get dx/dy movement deltas
   function getDelta() {
     let dx = 0;
     let dy = 0;

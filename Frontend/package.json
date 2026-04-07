@@ -4,7 +4,6 @@
     "pixi.js": "^8.17.1",
     "socket.io-client": "^4.8.3",
     "tailwind": "^4.0.0",
-    "tailwindcss": "^4.2.2",
     "vite": "^8.0.3"
   },
   "scripts": {
@@ -12,5 +11,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2"
   }
 }

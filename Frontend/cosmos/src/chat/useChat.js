@@ -1,10 +1,8 @@
 import { useState, useCallback } from 'react';
 
 export function useChat() {
-  // { [socketId]: [ { from, username, color, message, timestamp } ] }
   const [conversations, setConversations] = useState({});
 
-  // Call this when socket receives a message
   const receiveMessage = useCallback((msg) => {
     setConversations(prev => ({
       ...prev,
@@ -15,7 +13,6 @@ export function useChat() {
     }));
   }, []);
 
-  // Call this when WE send a message
   const sendMessage = useCallback((toSocketId, message) => {
     setConversations(prev => ({
       ...prev,
@@ -31,7 +28,6 @@ export function useChat() {
     }));
   }, []);
 
-  // Get messages for a specific user
   const getMessages = (socketId) => conversations[socketId] || [];
 
   return { receiveMessage, sendMessage, getMessages };

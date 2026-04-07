@@ -4,7 +4,6 @@ export default function ChatPanel({ nearbyUsers, activeChat, onSelectChat, messa
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -15,7 +14,6 @@ export default function ChatPanel({ nearbyUsers, activeChat, onSelectChat, messa
     setInput('');
   }
 
-  // If nobody nearby, show empty state
   if (nearbyUsers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-6">
